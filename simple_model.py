@@ -11,7 +11,7 @@ from os import listdir
 
 class SimpleAutoencoder(nn.Module):
     def __init__(self):
-        super(Autoencoder, self).__init__()
+        super(SimpleAutoencoder, self).__init__()
         self.encoder = nn.Sequential(
             nn.Conv2d(in_channels=3, out_channels=5, kernel_size=3, padding=1),
             nn.ReLU(),
@@ -31,7 +31,7 @@ class SimpleAutoencoder(nn.Module):
 
 class SimpleEnhancer(nn.Module):
     def __init__(self):
-        super(Enhancer, self).__init__()
+        super(SimpleEnhancer, self).__init__()
         self.tconv2d = nn.ConvTranspose2d(in_channels=10,
                            out_channels=3,
                            kernel_size=5,
