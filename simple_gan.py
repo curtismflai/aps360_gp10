@@ -21,36 +21,51 @@ class Enhancer(nn.Module):
     def __init__(self, name):
         super(Enhancer, self).__init__()
         self.name = name
-        self.enhancer = nn.Sequential(nn.Conv2d(in_channels=3, out_channels=128, kernel_size=9, padding=4),
-                                      nn.LeakyReLU(0.2, inplace=True),
-                                      nn.Conv2d(in_channels=128, out_channels=64, kernel_size=7, padding=3),
-                                      nn.LeakyReLU(0.2, inplace=True),
-                                      nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
-                                      nn.LeakyReLU(0.2, inplace=True),
-                                      nn.Conv2d(in_channels=64, out_channels=32, kernel_size=1, padding=0),
-                                      nn.LeakyReLU(0.2, inplace=True),
-                                      nn.Conv2d(in_channels=32, out_channels=3, kernel_size=5, padding=2),                                      
+        self.enhancer1 = nn.Sequential(nn.Conv2d(in_channels=3, out_channels=64, kernel_size=7, padding=3),
+                                      nn.LeakyReLU(inplace=True),
+                                      nn.Conv2d(in_channels=64, out_channels=128, kernel_size=7, padding=3),
+                                      nn.BatchNorm2d(128),
+                                      nn.LeakyReLU(inplace=True),                                    
+                                      )
+        self.enhancer2= nn.Sequential(  
+                                      nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, padding=1),
+                                      nn.BatchNorm2d(128),
+                                      nn.LeakyReLU(inplace=True),
+                                      nn.Conv2d(in_channels=128, out_channels=3, kernel_size=3, padding=1),
                                       nn.Sigmoid(),
                                       )
 
     def forward(self, x):
         x = F.interpolate(x, scale_factor=2)
-        x = self.enhancer(x)
+        x = self.enhancer1(x)
+        x= self.enhancer2(x)
+
+        
         return x
+
+    
+       
+    
+    
     
 class Discriminator(nn.Module):
     def __init__(self, name):
         super(Discriminator, self).__init__()
         self.name = name
-        self.discriminator = nn.Sequential(nn.Conv2d(in_channels=3, out_channels=128, kernel_size=9, padding=4),
-                                          nn.LeakyReLU(0.2, inplace=True),
-                                          nn.Conv2d(in_channels=128, out_channels=1, kernel_size=5, padding=2),
+        self.discriminator = nn.Sequential(nn.Conv2d(in_channels=3, out_channels=64, kernel_size=7, padding=3),
+                                          nn.LeakyReLU( inplace=True),
+                                          nn.Conv2d(in_channels=64,out_channels=128,kernel_size=7,padding=3),
+                                          nn.BatchNorm2d(128), 
+                                          nn.LeakyReLU( inplace=True),
+                                          nn.Conv2d(in_channels=128,out_channels=256,kernel_size=7,padding=3),
+                                          nn.BatchNorm2d(256),  
+                                          nn.LeakyReLU( inplace=True),
+                                          nn.Conv2d(in_channels=256, out_channels=1, kernel_size=1), 
+                                          nn.Sigmoid()
                                           )
 
     def forward(self, x):
         x = self.discriminator(x)
-        x = F.avg_pool2d(x, kernel_size=(x.shape[2], x.shape[3]))
-        x = x.view(-1)
         return x
     
 def train_enhancer(model, discriminator, path, mse_ratio=0.5, train_model_per_batch=2, batch_size=1, learning_rate=1e-3, num_epochs=5, device="cpu", cont=True, prev_model_path = "", prev_discriminator_path = ""):
