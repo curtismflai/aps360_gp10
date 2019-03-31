@@ -216,7 +216,58 @@ def train_enhancer(model, discriminator, path, mse_ratio=0.5, train_model_per_ba
     
     return
 
+def image_gen (model, path,prev_model_path, dataset, batch_size=1):
+    
+    with torch.no_grad():    
 
+        print("Creating fake images tensor for later uses.")
+        sys.stdout.write('000%')
+        sys.stdout.flush()
+        model.eval()
+        batch_size=64
+        dataloader_fake = data_utils.DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
+
+        if torch.cuda.device_count() > 1:
+            device_ids = [i for i in range(torch.cuda.device_count())]
+            torch.cuda.empty_cache()
+            name = model.name
+            model = nn.DataParallel(model, device_ids)
+            model.name = name
+        
+        model.load_state_dict(torch.load(prev_model_path,) )#map_location=torch.device('cpu')))       
+        model.to(device)
+        fake_images = torch.zeros(len(dataset)+(batch_size-len(dataset)%batch_size), 3, 512, 512)
+
+        fake_images_count = 0
+        for i, (images,targets) in enumerate(dataloader_fake, 0):
+  
+            data = images
+            data = data.to(device)
+            puffer = (model(F.interpolate(data, scale_factor=0.5)));
+
+            fake_images[fake_images_count:fake_images_count + puffer.shape[0]] = puffer[0:puffer.shape[0]]
+
+            fake_images_count += puffer.shape[0]
+            sys.stdout.write('\r\r\r\r{:0>3d}%'.format(int((fake_images_count)/(len(dataset))*100)))
+            sys.stdout.flush()
+
+            puffer= None
+            del puffer
+            
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+            if fake_images_count >= len(dataset):
+                print('true')
+                break
+            
+    print("Done")
+    torch.set_grad_enabled(True)
+    del model
+    fake_images = fake_images.cpu()
+    torch.cuda.empty_cache()
+    return (fake_images)
+	
 def train_enhancer_only(model, path, batch_size=1, learning_rate=1e-3, num_epochs=5, device="cpu", cont=True, prev_model_path = ""):
     
     #move data and model to specified device, and activate parallel computation where possible
